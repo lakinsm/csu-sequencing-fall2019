@@ -1,0 +1,33 @@
+# These two steps (commented out) create the database and only need to be run once.
+#pcr.seqs(fasta=database/silva.nr_v132.align, oligos=database/pcr_primers.txt, keepdots=F)
+#list.seqs(fasta=database/silva.nr_v132.pcr.align)
+#get.seqs(taxonomy=database/silva.nr_v132.tax, accnos=current)
+#system(mv database/silva.nr_v132.pcr.align database/silva.v4.fasta)
+#system(mv database/silva.nr_v132.pick.tax database/silva.v4.tax)
+
+make.contigs(file=mip565.files, processors=8)
+screen.seqs(fasta=current, group=current, maxambig=0, maxlength=275)
+unique.seqs()
+count.seqs(name=current, group=current)
+align.seqs(fasta=current, reference=database/silva.v4.fasta)
+summary.seqs()
+screen.seqs(fasta=current, count=current, start=12749, end=22331, maxhomop=8)
+filter.seqs(fasta=current, vertical=T, trump=.)
+unique.seqs(fasta=current, count=current)
+pre.cluster(fasta=current, count=current, diffs=2)
+chimera.vsearch(fasta=current, count=current, dereplicate=t)
+remove.seqs(fasta=current, accnos=current)
+summary.seqs()
+classify.seqs(fasta=current, count=current, reference=database/silva.v4.fasta, taxonomy=database/silva.v4.tax, cutoff=80)
+remove.lineage(fasta=current, count=current, taxonomy=current, taxon=Chloroplast-Mitochondria-unknown-Archaea-Eukaryota)
+summary.tax(taxonomy=current, count=current)
+
+dist.seqs(fasta=current, cutoff=0.03)
+cluster(column=current, count=current)
+# Taxlevel 3 = Class, 4 = Order, 5 = Family, 6 = Genus
+#cluster.split(fasta=current, count=current, taxonomy=current, splitmethod=classify, taxlevel=6)
+make.shared(list=current, count=current, label=0.03)
+classify.otu(list=current, count=current, taxonomy=current, label=0.03)
+make.shared(list=current, count=current, label=0.03)
+make.biom(shared=current, constaxonomy=current, label=0.03)
+

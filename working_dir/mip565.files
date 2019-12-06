@@ -1,0 +1,11 @@
+Soil_1a	../data/16S_Soil_1a_S1_L001_R1_001.fastq	../data/16S_Soil_1a_S1_L001_R2_001.fastq
+Soil_1b	../data/16S_Soil_1b_S2_L001_R1_001.fastq	../data/16S_Soil_1b_S2_L001_R2_001.fastq
+Soil_1c	../data/16S_Soil_1c_S3_L001_R1_001.fastq	../data/16S_Soil_1c_S3_L001_R2_001.fastq
+Soil_2a	../data/16S_Soil_2a_S4_L001_R1_001.fastq	../data/16S_Soil_2a_S4_L001_R2_001.fastq
+Soil_2b	../data/16S_Soil_2b_S5_L001_R1_001.fastq	../data/16S_Soil_2b_S5_L001_R2_001.fastq
+Soil_2c	../data/16S_Soil_2c_S6_L001_R1_001.fastq	../data/16S_Soil_2c_S6_L001_R2_001.fastq
+Soil_3a	../data/16S_Soil_3a_S7_L001_R1_001.fastq	../data/16S_Soil_3a_S7_L001_R2_001.fastq
+Soil_4a	../data/16S_Soil_4a_S9_L001_R1_001.fastq	../data/16S_Soil_4a_S9_L001_R2_001.fastq
+Soil_4b	../data/16S_Soil_4b_S10_L001_R1_001.fastq	../data/16S_Soil_4b_S10_L001_R2_001.fastq
+Water	../data/16S_Water_S11_L001_R1_001.fastq	../data/16S_Water_S11_L001_R2_001.fastq
+Zymo_mock	../data/16S_Zymo_mock_S12_L001_R1_001.fastq	../data/16S_Zymo_mock_S12_L001_R2_001.fastq
