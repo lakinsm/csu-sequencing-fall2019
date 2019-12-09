@@ -1,5 +1,6 @@
 library(data.table)
 library(ggplot2)
+library(biomformat)
 
 set.seed(2718)
 
@@ -30,6 +31,14 @@ metadata = data.table(
           'Soil 3', 'Soil 4', 'Soil 4',
           'Water', 'Zymo Mock')
 )
+
+lib_sizes = data.table(
+  SampleName=colnames(obs_matrix),
+  RemovedReads=c(102336, 16, 130528, 140880, 124, 140176, 23800, 162136,
+                222184, 8008, 102024) / 4
+)
+lib_sizes[, AnalyticData := colSums(obs_matrix)]
+lib_sizes$RemovedReads = lib_sizes$RemovedReads - lib_sizes$AnalyticData
 
 obs_mr = newMRexperiment(obs_matrix[rowSums(obs_matrix) > 0, ])  # remove zero-count features
 
@@ -309,15 +318,134 @@ for(s in sample_vec) {
                         SESpeciesRichness=res['se', ]
                       ))
 }
+rarefaction$MeanSpeciesRichness[rarefaction$SESpeciesRichness == 0] = NA
 
 g = ggplot(rarefaction, aes(x=SampleSize, y=MeanSpeciesRichness, 
                             color=SampleName)) +
   geom_line() +
   geom_errorbar(aes(ymin=MeanSpeciesRichness-SESpeciesRichness,
                     ymax=MeanSpeciesRichness+SESpeciesRichness),
-                alpha=0.3)
+                alpha=0.3) +
+  theme(
+    legend.title=element_text(size=18),
+    legend.text=element_text(size=14),
+    axis.title=element_text(size=18),
+    axis.text.x=element_text(size=14, hjust=1, angle=45),
+    axis.text.y=element_text(size=14)
+  )
 print(g)
 
+
+# Library size plot
+mlib = melt(lib_sizes)
+g = ggplot(mlib, aes(x=SampleName, y=value, fill=variable)) +
+  geom_bar(stat='identity') +
+  geom_text(aes(x=SampleName, y=totals + 2000,
+                label=percentiles,
+                fill=NULL), data=data.table(
+                  SampleName=colnames(obs_matrix),
+                  percentiles=paste(round(100*lib_sizes$RemovedReads / (lib_sizes$RemovedReads + lib_sizes$AnalyticData), 1), '%', sep=''),
+                  totals=lib_sizes$RemovedReads + lib_sizes$AnalyticData
+                ), size=4) +
+  theme(
+    legend.title=element_text(size=18),
+    legend.text=element_text(size=14),
+    axis.title=element_text(size=18),
+    axis.text.x=element_text(size=14, hjust=1, angle=45),
+    axis.text.y=element_text(size=14)
+  ) +
+  scale_fill_discrete(name='Read Type') +
+  ylab('Count of Paired-End Reads') +
+  xlab('Sample Name')
+print(g)
+
+
+
+# Features at each level
+feat_count = data.table(
+  TaxonomicLevel=names(obs_norm_analytic),
+  ClassifiedCounts=unlist(lapply(obs_norm_analytic, function(X){
+    selected_features = rownames(X)[!grepl('(unclassified|uncultured|unknown)', rownames(X), ignore.case=T, perl=T)]
+    local_matrix = MRcounts(X)
+    return(sum(as.vector(local_matrix[selected_features, ])))
+  }))
+)
+feat_count[, PercentTotal := paste(round(100*ClassifiedCounts/max(ClassifiedCounts), 1), '%', sep='') ]
+
+
+feat_count$TaxonomicLevel = factor(feat_count$TaxonomicLevel,
+                                   levels=c('Phylum', 'Class', 'Order', 'Family',
+                                            'Genus'), ordered=T)
+g = ggplot(feat_count, aes(x=TaxonomicLevel, y=ClassifiedCounts)) +
+  geom_bar(stat='identity') +
+  geom_text(aes(y=ClassifiedCounts + 5000, label=PercentTotal), size=4) +
+  theme(
+    legend.title=element_text(size=18),
+    legend.text=element_text(size=14),
+    axis.title=element_text(size=18),
+    axis.text.x=element_text(size=14, hjust=1, angle=45),
+    axis.text.y=element_text(size=14)
+  ) +
+  xlab('Taxonomic Level') +
+  ylab('Classified Counts')
+print(g)
+
+
+# Looking at Zymo mock community
+zym = MRcounts(obs_norm_analytic$Genus)
+zym = as.data.table(zym[, 'Zymo_mock'])
+zym[, TaxonomicID := rownames(obs_norm_analytic$Genus)]
+zym = zym[V1 > 0, ]
+zym = zym[!grepl('unclassified', TaxonomicID, ignore.case=T)]
+zym[, NormalizedCount := V1]
+zym$V1 = paste(round(100*zym$V1 / sum(zym$V1), 1), '%', sep='')
+colnames(zym) = c('Percent', 'TaxonomicID', 'NormalizedCount')
+
+g = ggplot(zym, aes(x=TaxonomicID, y=NormalizedCount, fill=TaxonomicID)) +
+  geom_bar(stat='identity') +
+  geom_text(aes(y=NormalizedCount + 100, label=Percent), size=4) +
+  theme(
+    legend.title=element_text(size=18),
+    legend.text=element_text(size=14),
+    axis.title=element_text(size=18),
+    axis.text.x=element_text(size=14, hjust=1, angle=45),
+    axis.text.y=element_text(size=14),
+    legend.position='None',
+    plot.title=element_text(size=20, hjust=0.5)
+  ) +
+  xlab('Genus') +
+  ylab('Normalized Count') +
+  ggtitle('Zymo Mock Community')
+print(g)
+
+
+# Water negative control
+wat = MRcounts(obs_norm_analytic$Order)
+wat = as.data.table(wat[, 'Water'])
+wat[, TaxonomicID := rownames(obs_norm_analytic$Order)]
+wat = wat[V1 > 0, ]
+wat = wat[!grepl('unclassified', TaxonomicID, ignore.case=T)]
+wat[, NormalizedCount := V1]
+wat$V1 = paste(round(100*wat$V1 / sum(wat$V1), 1), '%', sep='')
+colnames(wat) = c('Percent', 'TaxonomicID', 'NormalizedCount')
+wat = wat[NormalizedCount > quantile(NormalizedCount, 0.5)]
+
+g = ggplot(wat, aes(x=TaxonomicID, y=NormalizedCount, fill=TaxonomicID)) +
+  geom_bar(stat='identity') +
+  geom_text(aes(y=NormalizedCount + 100, label=Percent), size=4) +
+  theme(
+    legend.title=element_text(size=18),
+    legend.text=element_text(size=14),
+    axis.title=element_text(size=18),
+    axis.text.x=element_text(size=14, hjust=1, angle=45),
+    axis.text.y=element_text(size=14),
+    legend.position='None',
+    plot.title=element_text(size=20, hjust=0.5)
+  ) +
+  xlab('Genus') +
+  ylab('Normalized Count') +
+  ggtitle('Water Negative Control')
+print(g)
 
 
 
